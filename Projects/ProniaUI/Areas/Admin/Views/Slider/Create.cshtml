@@ -1,0 +1,64 @@
+﻿@model SliderPostVM
+@{
+    ViewData["Title"] = "Create";
+}
+<main id="main" class="main">
+
+    <div class="pagetitle">
+        <h1></h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-action="Index">Slider</a></li>
+                <li class="breadcrumb-item">Create New Slider</li>
+            </ol>
+        </nav>
+    </div><!-- End Page Title -->
+    <section class="section">
+        <div class="row">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Create</h5>
+
+                    <!-- Vertical Form -->
+                    <form method="post" class="row g-3" enctype="multipart/form-data">
+                        <div class="col-12">
+                            <label asp-for="Title"></label>
+                            <input asp-for="Title" class="form-control">
+                            <span asp-validation-for="Title" class="text-danger"></span>
+
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Description"></label>
+                            <input asp-for="Description" class="form-control">
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="ImageUrl">Image</label>
+                            <input asp-for="ImageUrl" accept="image/*" class="form-control">
+                            <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Discount"></label>
+                            <input asp-for="Discount" class="form-control">
+                            <span asp-validation-for="Discount" class="text-danger"></span>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                            <button type="reset" class="btn btn-secondary">Reset</button>
+                        </div>
+                    </form><!-- Vertical Form -->
+
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+@section scripts{
+    <partial name="_ValidationPartial"></partial>
+}
+
+
+
+
+
