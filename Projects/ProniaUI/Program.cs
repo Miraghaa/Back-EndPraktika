@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Pronia.Buisness.Mappers;
+using Pronia.Buisness.Services.Implementations;
+using Pronia.Buisness.Services.Interfaces;
 using Pronia.DbC.Contexts;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +13,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default"));
 });
-
+builder.Services.AddScoped<IFileService,FileService>();
 var app = builder.Build();
 app.UseStaticFiles();
 

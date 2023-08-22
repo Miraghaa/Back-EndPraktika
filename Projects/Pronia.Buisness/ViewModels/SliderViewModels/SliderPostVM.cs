@@ -5,6 +5,8 @@ namespace Pronia.Buisness.ViewModels.SliderViewModels;
 
 public class SliderPostVM
 {
+    //asagida yazdigimiz reuiredder data anoteysinlar propertyinin uzerinde yazilir bu bize xana bosdursa erroru gosteririr
+    //
     [Required,MaxLength(30),MinLength(5)]
     public string Title { get; set; } = null!;
     

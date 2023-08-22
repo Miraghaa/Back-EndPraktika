@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Pronia.Buisness.ViewModels.SliderViewModels;
 using Pronia.Core.Entities;
 using Pronia.DbC.Contexts;
+using Pronia.Buisness.Utilities;
+using Pronia.Buisness.Services.Interfaces;
+using Pronia.Buisness.Exceptions;
 
 namespace ProniaUI.Areas.Admin.Controllers;
 
@@ -14,19 +17,25 @@ public class SliderController : Controller
     private readonly AppDbContext _context;
     private readonly IMapper _mapper;
     private readonly IWebHostEnvironment _webEnv;
+    private readonly IFileService _fileservice;
 
     public SliderController(AppDbContext context,
                             IMapper mapper,
-                            IWebHostEnvironment webEnv)
+                            IWebHostEnvironment webEnv,
+                            IFileService fileservice)
     {
         _context = context;
         _mapper = mapper;
         _webEnv = webEnv;
+        _fileservice = fileservice;
     }
 
     public IActionResult Index()
     {
-        return View(_context.Sliders.AsNoTracking());
+        // hal hazirda biz burda sorgunu bir edib sliderde 5 den cox olmamigini qarsini alirig vereceyimiz sertle
+        var sliders = _context.Sliders.AsNoTracking();
+        ViewBag.Count = sliders.Count();
+        return View(sliders);
     }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
     public async Task<IActionResult> Details(int id)
     {
@@ -34,42 +43,79 @@ public class SliderController : Controller
         if (slider == null) return NotFound();
         return View(slider);
     }
-
     public IActionResult Create()
     {
+        if (_context.Sliders.Count() >= 5)
+        {
+            return BadRequest();
+        }
         return View();
     }
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(SliderPostVM slider)
     {
+        // anoteysinnari yoxluyur
         if(!ModelState.IsValid) return View(slider);
-        //if (slider.ImageUrl.Length / 1024 > 100)
-        //{
-        //    ModelState.AddModelError("ImageUrl", "normal bir sey qoy");
-        //    return View(slider);
-        //}
-        if (!slider.ImageUrl.ContentType.Contains("image/"))
+        string filename = string.Empty;
+        try
         {
-            {
-                ModelState.AddModelError("ImageUrl", "sekil sec sekil a tupoy");
-                return View(slider);
-            }
+            filename = await _fileservice.UploadFile(slider.ImageUrl, _webEnv.WebRootPath, 300, "assets", "images", "slider", "slide-img");
         }
-        //string folderroot = Path.Combine(_webEnv.WebRootPath, "assets", "images", "slider", "slide-img");
-        string filename = Path.Combine("assets", "images", "slider", "slide-img",Guid.NewGuid().ToString()+ slider.ImageUrl.FileName);
-        string fileRoot = Path.Combine(_webEnv.WebRootPath, filename);
-
-        using (FileStream fileStream = new FileStream(fileRoot, FileMode.Create))
+        catch(FileSizeException ex)
         {
-            await slider.ImageUrl.CopyToAsync(fileStream);
+            ModelState.AddModelError("ImageUrl", ex.Message);
+            return View(slider);
         }
- 
+        catch(FileTypeException ex)
+        {
+            ModelState.AddModelError("ImageUrl", ex.Message);
+            return View(slider);
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return View(slider);
+        }
+        // auto mapper pakec yukluyuruk propertileri yukluyur automatic
         Slider newslider = _mapper.Map<Slider>(slider);
         newslider.ImageUrl = filename;
+        // add async demeyimizin meqsedi yaradilani izlesin (Add olur )
         await _context.Sliders.AddAsync(newslider);
+        // save elesey burda database gondermis olucayiq   unchanged olacaq elemesey nc olmuyicey
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
+   
+    public async Task<IActionResult> Delete(int id)
+    {
+        Slider? slider = await _context.Sliders.FindAsync(id);
+        // eger bir sorgu atib tapmiriqqsa cavabi not founddu \404\
+        if (slider == null) return NotFound();
+        return View(slider);
+    }
+    [HttpPost]
+    [ActionName("Delete")] // BUNU NIYE ELEDIY EYNI ADDA EYNI PARAMETRLERI QEBUL EDE BILMIRY AMMA BELEDE YAZIB ADINI BUCUR EDE BILRIK
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeletePost(int id)
+    {
+        Slider? slider = await _context.Sliders.FindAsync(id);
+        if (slider == null) return NotFound();
+        //BURDA STROAGE ELAVE ETDIYIMIZ SEKLI SILIRIK BIRINCI YOXLUYURUQ KI VARMI? VARSA OZUN BASA DUSDUN...
+        // VE BIZ COMBINE ISTIFADE ETDIK CUNKI TAM YERLESMENI YAZMAYANDA ISLEMEDI
+        string fileroot = Path.Combine(_webEnv.WebRootPath, slider.ImageUrl);
+        if (System.IO.File.Exists(fileroot))
+        {
+            System.IO.File.Delete(fileroot);
+        }
+        
+        _context.Sliders.Remove(slider);
+        await _context.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+        //return Content(_context.Entry(slider).State.ToString());
+        //ASAGIDAKI YAZILISIDA MOVCUDDUR
+        //_context.Entry(slider).State= EntityState.Deleted;
+        //return RedirectToAction(nameof(Index));
+    }
+
 }
